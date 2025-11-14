@@ -1,0 +1,14 @@
+# Arquivos temporários gerados durante os estudos
+*.tar
+*.tar.gz
+*.log
+
+# Diretórios temporários
+tmp/
+temp/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+
