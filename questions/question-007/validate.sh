@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# Validation Script - Question 005
+# Validation Script - Question 007
 # Validates if the question was solved correctly
 
 set +e  # Don't exit on error - we want to check all validations
 
-echo "🔍 Validating solution for Question 005..."
+echo "🔍 Validating solution for Question 007..."
 echo ""
 
 PASSED=0
@@ -50,108 +50,136 @@ check_with_error() {
 echo "═══════════════════════════════════════════════════════════"
 echo "Validation 1: Namespace exists"
 echo "═══════════════════════════════════════════════════════════"
-check "Namespace nov2025 exists" "kubectl get namespace nov2025"
+check "Namespace production exists" "kubectl get namespace production"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo "Validation 2: Deployment exists"
+echo "Validation 2: CronJob exists"
 echo "═══════════════════════════════════════════════════════════"
-check "Deployment nov2025-deployment exists in namespace nov2025" "kubectl get deployment nov2025-deployment -n nov2025"
+check "CronJob log-cleaner exists in namespace production" "kubectl get cronjob log-cleaner -n production"
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo "Validation 3: Deployment replicas"
+echo "Validation 3: CronJob schedule"
 echo "═══════════════════════════════════════════════════════════"
 
-REPLICAS=$(kubectl get deployment nov2025-deployment -n nov2025 -o jsonpath='{.spec.replicas}' 2>/dev/null || echo "0")
+SCHEDULE=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.schedule}' 2>/dev/null || echo "")
 
-if [ "$REPLICAS" = "4" ]; then
-    echo "✅ PASSED: Deployment has 4 replicas"
+if [ "$SCHEDULE" = "*/30 * * * *" ] || [ "$SCHEDULE" = "0,30 * * * *" ] || [[ "$SCHEDULE" == *"*/30"* ]]; then
+    echo "✅ PASSED: CronJob schedule is every 30 minutes (current: $SCHEDULE)"
     ((PASSED++))
 else
-    echo "❌ FAILED: Deployment does not have 4 replicas (current: $REPLICAS)"
-    echo "   💡 Scale the deployment: kubectl scale deployment nov2025-deployment --replicas=4 -n nov2025"
+    echo "❌ FAILED: CronJob schedule is not every 30 minutes (current: $SCHEDULE)"
+    echo "   💡 Set schedule to '*/30 * * * *' for every 30 minutes"
     ((FAILED++))
 fi
 
 echo ""
 echo "═══════════════════════════════════════════════════════════"
-echo "Validation 4: Pod template label func=webFrontend"
+echo "Validation 4: Completions"
 echo "═══════════════════════════════════════════════════════════"
 
-LABEL_VALUE=$(kubectl get deployment nov2025-deployment -n nov2025 -o jsonpath='{.spec.template.metadata.labels.func}' 2>/dev/null || echo "")
+COMPLETIONS=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.successfulJobsHistoryLimit}' 2>/dev/null || echo "")
 
-if [ "$LABEL_VALUE" = "webFrontend" ]; then
-    echo "✅ PASSED: Pod template has label func=webFrontend"
+# Note: The question says "2 completions" which likely means successfulJobsHistoryLimit
+# But it could also mean parallelism or completions in job template
+# Let's check successfulJobsHistoryLimit first
+if [ "$COMPLETIONS" = "2" ]; then
+    echo "✅ PASSED: successfulJobsHistoryLimit is 2"
     ((PASSED++))
 else
-    echo "❌ FAILED: Pod template does not have label func=webFrontend (current: '$LABEL_VALUE')"
-    echo "   💡 Add label func=webFrontend to the pod template metadata"
-    ((FAILED++))
-fi
-
-echo ""
-echo "═══════════════════════════════════════════════════════════"
-echo "Validation 5: Service Berry exists"
-echo "═══════════════════════════════════════════════════════════"
-check "Service Berry exists in namespace nov2025" "kubectl get service Berry -n nov2025"
-
-echo ""
-echo "═══════════════════════════════════════════════════════════"
-echo "Validation 6: Service type NodePort"
-echo "═══════════════════════════════════════════════════════════"
-
-SERVICE_TYPE=$(kubectl get service Berry -n nov2025 -o jsonpath='{.spec.type}' 2>/dev/null || echo "")
-
-if [ "$SERVICE_TYPE" = "NodePort" ]; then
-    echo "✅ PASSED: Service Berry is of type NodePort"
-    ((PASSED++))
-else
-    echo "❌ FAILED: Service Berry is not of type NodePort (current: $SERVICE_TYPE)"
-    echo "   💡 Set service type to NodePort"
-    ((FAILED++))
-fi
-
-echo ""
-echo "═══════════════════════════════════════════════════════════"
-echo "Validation 7: Service port 8080"
-echo "═══════════════════════════════════════════════════════════"
-
-SERVICE_PORT=$(kubectl get service Berry -n nov2025 -o jsonpath='{.spec.ports[0].port}' 2>/dev/null || echo "")
-
-if [ "$SERVICE_PORT" = "8080" ]; then
-    echo "✅ PASSED: Service Berry exposes port 8080"
-    ((PASSED++))
-else
-    echo "❌ FAILED: Service Berry does not expose port 8080 (current: $SERVICE_PORT)"
-    echo "   💡 Set service port to 8080"
-    ((FAILED++))
-fi
-
-echo ""
-echo "═══════════════════════════════════════════════════════════"
-echo "Validation 8: Service selector matches deployment"
-echo "═══════════════════════════════════════════════════════════"
-
-# Check if service selector matches pods with func=webFrontend label
-SERVICE_SELECTOR_FUNC=$(kubectl get service Berry -n nov2025 -o jsonpath='{.spec.selector.func}' 2>/dev/null || echo "")
-
-if [ "$SERVICE_SELECTOR_FUNC" = "webFrontend" ]; then
-    echo "✅ PASSED: Service selector matches func=webFrontend label"
-    ((PASSED++))
-else
-    # Check if it uses app label that would still match
-    SERVICE_SELECTOR_APP=$(kubectl get service Berry -n nov2025 -o jsonpath='{.spec.selector.app}' 2>/dev/null || echo "")
-    DEPLOYMENT_APP=$(kubectl get deployment nov2025-deployment -n nov2025 -o jsonpath='{.spec.selector.matchLabels.app}' 2>/dev/null || echo "")
-    
-    if [ "$SERVICE_SELECTOR_APP" = "$DEPLOYMENT_APP" ] && [ -n "$DEPLOYMENT_APP" ]; then
-        echo "✅ PASSED: Service selector matches deployment labels"
+    # Check if it's in the job template
+    JOB_COMPLETIONS=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.completions}' 2>/dev/null || echo "")
+    if [ "$JOB_COMPLETIONS" = "2" ]; then
+        echo "✅ PASSED: Job completions is 2"
         ((PASSED++))
     else
-        echo "⚠️  WARNING: Service selector may not correctly match deployment pods"
-        echo "   💡 Ensure service selector matches pods from nov2025-deployment (func=webFrontend)"
+        echo "❌ FAILED: Completions is not 2 (successfulJobsHistoryLimit: $COMPLETIONS, job completions: $JOB_COMPLETIONS)"
+        echo "   💡 Set successfulJobsHistoryLimit: 2 or jobTemplate.spec.completions: 2"
         ((FAILED++))
     fi
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "Validation 5: Retries (backoffLimit)"
+echo "═══════════════════════════════════════════════════════════"
+
+BACKOFF_LIMIT=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.backoffLimit}' 2>/dev/null || echo "")
+
+if [ "$BACKOFF_LIMIT" = "3" ]; then
+    echo "✅ PASSED: backoffLimit is 3"
+    ((PASSED++))
+else
+    echo "❌ FAILED: backoffLimit is not 3 (current: $BACKOFF_LIMIT)"
+    echo "   💡 Set jobTemplate.spec.backoffLimit: 3"
+    ((FAILED++))
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "Validation 6: Active deadline (30 seconds)"
+echo "═══════════════════════════════════════════════════════════"
+
+ACTIVE_DEADLINE=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.activeDeadlineSeconds}' 2>/dev/null || echo "")
+
+if [ "$ACTIVE_DEADLINE" = "30" ]; then
+    echo "✅ PASSED: activeDeadlineSeconds is 30"
+    ((PASSED++))
+else
+    echo "❌ FAILED: activeDeadlineSeconds is not 30 (current: $ACTIVE_DEADLINE)"
+    echo "   💡 Set jobTemplate.spec.activeDeadlineSeconds: 30"
+    ((FAILED++))
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "Validation 7: Container image (busybox)"
+echo "═══════════════════════════════════════════════════════════"
+
+CONTAINER_IMAGE=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].image}' 2>/dev/null || echo "")
+
+if [[ "$CONTAINER_IMAGE" == *"busybox"* ]]; then
+    echo "✅ PASSED: Container is using busybox image (current: $CONTAINER_IMAGE)"
+    ((PASSED++))
+else
+    echo "❌ FAILED: Container is not using busybox image (current: $CONTAINER_IMAGE)"
+    echo "   💡 Set container image to busybox"
+    ((FAILED++))
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "Validation 8: Container name (log)"
+echo "═══════════════════════════════════════════════════════════"
+
+CONTAINER_NAME=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].name}' 2>/dev/null || echo "")
+
+if [ "$CONTAINER_NAME" = "log" ]; then
+    echo "✅ PASSED: Container name is 'log'"
+    ((PASSED++))
+else
+    echo "❌ FAILED: Container name is not 'log' (current: $CONTAINER_NAME)"
+    echo "   💡 Set container name to 'log'"
+    ((FAILED++))
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════"
+echo "Validation 9: Command (date)"
+echo "═══════════════════════════════════════════════════════════"
+
+# Check if command is date
+COMMAND=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].command[0]}' 2>/dev/null || echo "")
+ARGS=$(kubectl get cronjob log-cleaner -n production -o jsonpath='{.spec.jobTemplate.spec.template.spec.containers[0].args[0]}' 2>/dev/null || echo "")
+
+if [ "$COMMAND" = "date" ] || [ "$ARGS" = "date" ] || [[ "$COMMAND" == *"date"* ]] || [[ "$ARGS" == *"date"* ]]; then
+    echo "✅ PASSED: Container executes 'date' command"
+    ((PASSED++))
+else
+    echo "❌ FAILED: Container does not execute 'date' command (command: $COMMAND, args: $ARGS)"
+    echo "   💡 Set command or args to execute 'date'"
+    ((FAILED++))
 fi
 
 echo ""
@@ -172,5 +200,4 @@ else
     echo "📝 Review the items above and try again."
     exit 1
 fi
-
 

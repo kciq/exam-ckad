@@ -60,6 +60,7 @@ cd questions/question-001
 - **Question 004**: Fix ServiceAccount RBAC Issues
 - **Question 005**: Scale Deployment and Create NodePort Service
 - **Question 006**: Rolling Update and Rollback
+- **Question 007**: Create CronJob
 
 ## Helper Functions
 

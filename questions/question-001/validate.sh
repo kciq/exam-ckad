@@ -3,7 +3,7 @@
 # Script de Validação - Questão 001
 # Valida se a questão foi resolvida corretamente
 
-set -e
+set +e  # Don't exit on error - we want to check all validations
 
 echo "🔍 Validando solução da Questão 001..."
 echo ""
