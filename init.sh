@@ -98,20 +98,31 @@ exec-lab() {
         # echo "   ℹ️  Found QUESTIONS_DIR: \$QUESTIONS_DIR"
     fi
     
-    # Format lab number (01, 02, etc.)
-    lab_num=\$(printf "%02d" "\$lab_num" 2>/dev/null || echo "\$lab_num")
+    # Format lab number (01, 02, etc.) - keep leading zeros for 3-digit format
+    lab_num=\$(printf "%03d" "\$lab_num" 2>/dev/null || printf "%02d" "\$lab_num" 2>/dev/null || echo "\$lab_num")
     
-    # Remove leading zero if exists for directory name (question-1, question-2, etc.)
-    local dir_num=\${lab_num#0}
-    local lab_dir="\${QUESTIONS_DIR}/question-\${dir_num}"
+    # Try both formats: question-001 and question-1
+    local lab_dir_3digit="\${QUESTIONS_DIR}/question-\${lab_num}"
+    local dir_num=\${lab_num#0}  # Remove leading zeros for question-1 format
+    local lab_dir_1digit="\${QUESTIONS_DIR}/question-\${dir_num}"
     
-    if [ ! -d "\$lab_dir" ]; then
-        echo "❌ Lab question-\${dir_num} not found in \$QUESTIONS_DIR!"
-        echo "   Looking for: \$lab_dir"
+    local lab_dir=""
+    if [ -d "\$lab_dir_3digit" ]; then
+        lab_dir="\$lab_dir_3digit"
+    elif [ -d "\$lab_dir_1digit" ]; then
+        lab_dir="\$lab_dir_1digit"
+    fi
+    
+    if [ -z "\$lab_dir" ] || [ ! -d "\$lab_dir" ]; then
+        echo "❌ Lab question-\${lab_num} (or question-\${dir_num}) not found in \$QUESTIONS_DIR!"
+        echo "   Tried: \$lab_dir_3digit"
+        echo "   Tried: \$lab_dir_1digit"
+        echo "   Available questions: \$(ls -d \${QUESTIONS_DIR}/question-* 2>/dev/null | xargs -n1 basename | tr '\n' ' ' || echo 'none')"
         return 1
     fi
     
-    echo "🚀 Setting up lab question-\${dir_num}..."
+    local display_num=\${lab_num#0}  # Remove leading zeros for display
+    echo "🚀 Setting up lab question-\${display_num}..."
     cd "\$lab_dir" || return 1
     ./setup.sh
 }
@@ -185,20 +196,31 @@ check-lab() {
         # echo "   ℹ️  Found QUESTIONS_DIR: \$QUESTIONS_DIR"
     fi
     
-    # Format lab number (01, 02, etc.)
-    lab_num=\$(printf "%02d" "\$lab_num" 2>/dev/null || echo "\$lab_num")
+    # Format lab number (01, 02, etc.) - keep leading zeros for 3-digit format
+    lab_num=\$(printf "%03d" "\$lab_num" 2>/dev/null || printf "%02d" "\$lab_num" 2>/dev/null || echo "\$lab_num")
     
-    # Remove leading zero if exists for directory name (question-1, question-2, etc.)
-    local dir_num=\${lab_num#0}
-    local lab_dir="\${QUESTIONS_DIR}/question-\${dir_num}"
+    # Try both formats: question-001 and question-1
+    local lab_dir_3digit="\${QUESTIONS_DIR}/question-\${lab_num}"
+    local dir_num=\${lab_num#0}  # Remove leading zeros for question-1 format
+    local lab_dir_1digit="\${QUESTIONS_DIR}/question-\${dir_num}"
     
-    if [ ! -d "\$lab_dir" ]; then
-        echo "❌ Lab question-\${dir_num} not found in \$QUESTIONS_DIR!"
-        echo "   Looking for: \$lab_dir"
+    local lab_dir=""
+    if [ -d "\$lab_dir_3digit" ]; then
+        lab_dir="\$lab_dir_3digit"
+    elif [ -d "\$lab_dir_1digit" ]; then
+        lab_dir="\$lab_dir_1digit"
+    fi
+    
+    if [ -z "\$lab_dir" ] || [ ! -d "\$lab_dir" ]; then
+        echo "❌ Lab question-\${lab_num} (or question-\${dir_num}) not found in \$QUESTIONS_DIR!"
+        echo "   Tried: \$lab_dir_3digit"
+        echo "   Tried: \$lab_dir_1digit"
+        echo "   Available questions: \$(ls -d \${QUESTIONS_DIR}/question-* 2>/dev/null | xargs -n1 basename | tr '\n' ' ' || echo 'none')"
         return 1
     fi
     
-    echo "🔍 Validating lab question-\${dir_num}..."
+    local display_num=\${lab_num#0}  # Remove leading zeros for display
+    echo "🔍 Validating lab question-\${display_num}..."
     cd "\$lab_dir" || return 1
     ./validate.sh
 }
