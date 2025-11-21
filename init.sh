@@ -63,23 +63,39 @@ exec-lab() {
         if [ "\$found" = false ] && [ -n "\${BASH_SOURCE[0]}" ]; then
             local func_file="\${BASH_SOURCE[0]}"
             if [ -f "\$func_file" ]; then
-                local script_dir="\$(cd "\$(dirname "\$func_file")" && pwd 2>/dev/null || pwd)"
-                if [ -d "\${script_dir}/questions" ]; then
-                    export QUESTIONS_DIR="\${script_dir}/questions"
-                    found=true
-                elif [ -d "\${script_dir}/../questions" ]; then
-                    export QUESTIONS_DIR="\$(cd "\${script_dir}/.." && pwd)/questions"
+                # .lab-functions.sh is in the repo root, so questions is in the same directory
+                local repo_dir="\$(cd "\$(dirname "\$func_file")" && pwd 2>/dev/null || pwd)"
+                if [ -d "\${repo_dir}/questions" ]; then
+                    export QUESTIONS_DIR="\${repo_dir}/questions"
                     found=true
                 fi
             fi
         fi
         
+        # Strategy 4: Try to find from current working directory (walk up the tree)
+        if [ "\$found" = false ]; then
+            local current_dir="\$(pwd)"
+            while [ "\$current_dir" != "/" ]; do
+                if [ -d "\${current_dir}/questions" ]; then
+                    export QUESTIONS_DIR="\${current_dir}/questions"
+                    found=true
+                    break
+                fi
+                current_dir="\$(dirname "\$current_dir")"
+            done
+        fi
+        
         if [ "\$found" = false ]; then
             echo "❌ Could not find questions directory."
+            echo "   Current directory: \$(pwd)"
             echo "   Please run init.sh from the repository root or set QUESTIONS_DIR environment variable."
             echo "   Example: export QUESTIONS_DIR=\$(pwd)/questions"
+            echo "   Or navigate to the repository root and try again."
             return 1
         fi
+        
+        # Debug info (can be removed later)
+        # echo "   ℹ️  Found QUESTIONS_DIR: \$QUESTIONS_DIR"
     fi
     
     # Format lab number (01, 02, etc.)
@@ -134,23 +150,39 @@ check-lab() {
         if [ "\$found" = false ] && [ -n "\${BASH_SOURCE[0]}" ]; then
             local func_file="\${BASH_SOURCE[0]}"
             if [ -f "\$func_file" ]; then
-                local script_dir="\$(cd "\$(dirname "\$func_file")" && pwd 2>/dev/null || pwd)"
-                if [ -d "\${script_dir}/questions" ]; then
-                    export QUESTIONS_DIR="\${script_dir}/questions"
-                    found=true
-                elif [ -d "\${script_dir}/../questions" ]; then
-                    export QUESTIONS_DIR="\$(cd "\${script_dir}/.." && pwd)/questions"
+                # .lab-functions.sh is in the repo root, so questions is in the same directory
+                local repo_dir="\$(cd "\$(dirname "\$func_file")" && pwd 2>/dev/null || pwd)"
+                if [ -d "\${repo_dir}/questions" ]; then
+                    export QUESTIONS_DIR="\${repo_dir}/questions"
                     found=true
                 fi
             fi
         fi
         
+        # Strategy 4: Try to find from current working directory (walk up the tree)
+        if [ "\$found" = false ]; then
+            local current_dir="\$(pwd)"
+            while [ "\$current_dir" != "/" ]; do
+                if [ -d "\${current_dir}/questions" ]; then
+                    export QUESTIONS_DIR="\${current_dir}/questions"
+                    found=true
+                    break
+                fi
+                current_dir="\$(dirname "\$current_dir")"
+            done
+        fi
+        
         if [ "\$found" = false ]; then
             echo "❌ Could not find questions directory."
+            echo "   Current directory: \$(pwd)"
             echo "   Please run init.sh from the repository root or set QUESTIONS_DIR environment variable."
             echo "   Example: export QUESTIONS_DIR=\$(pwd)/questions"
+            echo "   Or navigate to the repository root and try again."
             return 1
         fi
+        
+        # Debug info (can be removed later)
+        # echo "   ℹ️  Found QUESTIONS_DIR: \$QUESTIONS_DIR"
     fi
     
     # Format lab number (01, 02, etc.)
@@ -227,6 +259,7 @@ export exec_lab_04="cd $QUESTIONS_DIR/question-004 && ./setup.sh"
 export exec_lab_05="cd $QUESTIONS_DIR/question-005 && ./setup.sh"
 export exec_lab_06="cd $QUESTIONS_DIR/question-006 && ./setup.sh"
 export exec_lab_07="cd $QUESTIONS_DIR/question-007 && ./setup.sh"
+export exec_lab_09="cd $QUESTIONS_DIR/question-009 && ./setup.sh"
 
 export check_lab_01="cd $QUESTIONS_DIR/question-001 && ./validate.sh"
 export check_lab_02="cd $QUESTIONS_DIR/question-002 && ./validate.sh"
@@ -235,6 +268,7 @@ export check_lab_04="cd $QUESTIONS_DIR/question-004 && ./validate.sh"
 export check_lab_05="cd $QUESTIONS_DIR/question-005 && ./validate.sh"
 export check_lab_06="cd $QUESTIONS_DIR/question-006 && ./validate.sh"
 export check_lab_07="cd $QUESTIONS_DIR/question-007 && ./validate.sh"
+export check_lab_09="cd $QUESTIONS_DIR/question-009 && ./validate.sh"
 
 echo ""
 echo "✅ Environment initialized successfully!"
@@ -249,6 +283,7 @@ echo "     exec-lab 04    or  cd questions/question-004 && ./setup.sh"
 echo "     exec-lab 05    or  cd questions/question-005 && ./setup.sh"
     echo "     exec-lab 06    or  cd questions/question-006 && ./setup.sh"
     echo "     exec-lab 07    or  cd questions/question-007 && ./setup.sh"
+    echo "     exec-lab 09    or  cd questions/question-009 && ./setup.sh"
 echo ""
 echo "   Validate labs:"
 echo "     check-lab 01   or  cd questions/question-001 && ./validate.sh"
@@ -258,6 +293,7 @@ echo "     check-lab 04   or  cd questions/question-004 && ./validate.sh"
 echo "     check-lab 05   or  cd questions/question-005 && ./validate.sh"
     echo "     check-lab 06   or  cd questions/question-006 && ./validate.sh"
     echo "     check-lab 07   or  cd questions/question-007 && ./validate.sh"
+    echo "     check-lab 09   or  cd questions/question-009 && ./validate.sh"
 echo ""
 echo "💡 Tip: Use 'exec-lab <number>' and 'check-lab <number>' from anywhere!"
 echo "💡 Or use the exported variables: \$exec_lab_01, \$check_lab_01, etc."
