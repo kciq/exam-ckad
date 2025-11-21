@@ -61,6 +61,7 @@ cd questions/question-001
 - **Question 005**: Scale Deployment and Create NodePort Service
 - **Question 006**: Rolling Update and Rollback
 - **Question 007**: Create CronJob
+- **Question 008**: Create Redis Pod
 - **Question 009**: Deploy Pod and Retrieve Logs/CPU Metrics
 
 ## Helper Functions
